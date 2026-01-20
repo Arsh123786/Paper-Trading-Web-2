@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Paper Trading – Journal</title>
+<link rel="stylesheet" href="app.css">
+</head>
+
+<body>
+<div class="container">
+
+<h1>📘 Trading Journal</h1>
+
+<div class="grid grid-4 card" id="kpis"></div>
+
+<div class="card">
+  <button class="secondary" onclick="highlight()">Highlight</button>
+  <button class="secondary" onclick="remove()">Delete</button>
+  <button class="primary" onclick="summary()">Summary</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th><input type="checkbox" onclick="toggle(this)"></th>
+        <th>Symbol</th>
+        <th>Type</th>
+        <th>P/L</th>
+        <th>%</th>
+        <th>Result</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+
+<div class="card" id="summaryBox"></div>
+
+</div>
+
+<script>
+function load(){ return JSON.parse(localStorage.getItem("paperTrades"))||[] }
+
+function render(){
+  const t = load();
+  rows.innerHTML="";
+  let wins=0,pnl=0;
+  t.forEach((x,i)=>{
+    pnl+=x.netProfit;
+    if(x.netProfit>0) wins++;
+    rows.innerHTML+=`
+      <tr class="${x.highlighted?'highlight':''}">
+        <td><input type="checkbox" data-i="${i}"></td>
+        <td>${x.symbol}</td>
+        <td>${x.type}</td>
+        <td class="${x.netProfit>=0?'green':'red'}">₹${x.netProfit.toFixed(2)}</td>
+        <td>${x.profitPercent.toFixed(2)}%</td>
+        <td>${x.conclusion}</td>
+      </tr>`;
+  });
+
+  kpis.innerHTML=`
+    <div class="kpi"><span>Total Trades</span>${t.length}</div>
+    <div class="kpi"><span>Win Rate</span>${t.length?(wins/t.length*100).toFixed(1):0}%</div>
+    <div class="kpi"><span>Total P/L</span>₹${pnl.toFixed(2)}</div>
+    <div class="kpi"><span>Avg Return</span>
+      ${t.length?(t.reduce((a,b)=>a+b.profitPercent,0)/t.length).toFixed(2):0}%
+    </div>`;
+}
+
+function selected(){
+  return [...document.querySelectorAll("tbody input:checked")]
+    .map(c=>+c.dataset.i);
+}
+
+function highlight(){
+  const t=load();
+  selected().forEach(i=>t[i].highlighted=!t[i].highlighted);
+  localStorage.setItem("paperTrades",JSON.stringify(t));
+  render();
+}
+
+function remove(){
+  let t=load();
+  t=t.filter((_,i)=>!selected().includes(i));
+  localStorage.setItem("paperTrades",JSON.stringify(t));
+  render();
+}
+
+function summary(){
+  const t=load(), s=selected().map(i=>t[i]);
+  if(!s.length) return;
+  summaryBox.innerHTML=`
+    Trades: ${s.length}<br>
+    Win Rate: ${(s.filter(x=>x.netProfit>0).length/s.length*100).toFixed(2)}%<br>
+    Total P/L: ₹${s.reduce((a,b)=>a+b.netProfit,0).toFixed(2)}<br>
+    Avg Return: ${(s.reduce((a,b)=>a+b.profitPercent,0)/s.length).toFixed(2)}%
+  `;
+}
+
+function toggle(cb){
+  document.querySelectorAll("tbody input")
+    .forEach(x=>x.checked=cb.checked);
+}
+
+render();
+</script>
+</body>
+</html>

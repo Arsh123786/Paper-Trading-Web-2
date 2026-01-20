@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Paper Trading – Trade Execution</title>
+<link rel="stylesheet" href="app.css">
+</head>
+
+<body>
+<div class="container">
+
+<h1>📊 Trade Execution</h1>
+
+<div class="card grid grid-4">
+  <input id="symbol" placeholder="Symbol (e.g. NIFTY 50 CALL)">
+  <select id="type" onchange="autoMargin()">
+    <option>Intraday</option>
+    <option>Delivery</option>
+    <option>F&O</option>
+  </select>
+  <input id="qty" type="number" placeholder="Quantity">
+  <input id="margin" type="number" placeholder="Margin">
+
+  <input id="buy" type="number" placeholder="Buy Price">
+  <input id="sell" type="number" placeholder="Sell Price">
+  <select id="brokerType">
+    <option value="none">No Brokerage</option>
+    <option value="flat">Brokerage ₹ Flat</option>
+    <option value="percent">Brokerage %</option>
+  </select>
+  <input id="brokerValue" type="number" placeholder="Brokerage Value">
+</div>
+
+<div class="card">
+  <button class="primary" onclick="calculate()">Calculate Trade</button>
+  <button class="secondary" onclick="saveTrade()">Save Trade</button>
+  <button class="secondary" onclick="openJournal()">Open Journal</button>
+
+  <div id="result" class="grid grid-3" style="margin-top:20px"></div>
+</div>
+
+</div>
+
+<script>
+let lastTrade = null;
+
+function autoMargin() {
+  const t = type.value;
+  margin.value = t === "Intraday" ? 5 : t === "Delivery" ? 1 : 10;
+}
+
+function calculate() {
+  const q = +qty.value, b = +buy.value, s = +sell.value;
+  if (!symbol.value || q<=0 || b<=0 || s<=0) return alert("Invalid input");
+
+  const invested = q * b;
+  const received = q * s;
+  const gross = received - invested;
+
+  let brokerage = 0;
+  if (brokerType.value === "flat") brokerage = +brokerValue.value || 0;
+  if (brokerType.value === "percent")
+    brokerage = ((+brokerValue.value||0)/100)*(invested+received);
+
+  const net = gross - brokerage;
+  const cap = invested / (+margin.value || 1);
+  const pct = (net / cap) * 100;
+
+  const conclusion = net >= 0 ? "PROFIT" : "LOSS";
+
+  lastTrade = {
+    symbol: symbol.value.toUpperCase(),
+    type: type.value,
+    qty: q,
+    buy: b,
+    sell: s,
+    margin: +margin.value || 1,
+    netProfit: net,
+    profitPercent: pct,
+    conclusion,
+    highlighted:false,
+    date: new Date().toLocaleString()
+  };
+
+  result.innerHTML = `
+    <div class="kpi"><span>Capital Used</span>₹${cap.toFixed(2)}</div>
+    <div class="kpi"><span>Exit Value</span>₹${received.toFixed(2)}</div>
+    <div class="kpi ${net>=0?'green':'red'}">
+      <span>${conclusion}</span>₹${net.toFixed(2)} (${pct.toFixed(2)}%)
+    </div>
+  `;
+}
+
+function saveTrade() {
+  if (!lastTrade) return alert("Calculate first");
+  const t = JSON.parse(localStorage.getItem("paperTrades")) || [];
+  t.push(lastTrade);
+  localStorage.setItem("paperTrades", JSON.stringify(t));
+  alert("Trade saved");
+}
+
+function openJournal() {
+  location.href = "journal.html";
+}
+</script>
+</body>
+</html>
