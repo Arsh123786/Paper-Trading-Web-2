@@ -46,7 +46,7 @@ let lastTrade = null;
 
 function autoMargin() {
   const t = type.value;
-  margin.value = t === "Intraday" ? 5 : t === "Delivery" ? 1 : 1;
+  margin.value = t === "Intraday" ? 5 : t === "Delivery" ? 1 : 1 === "F&O" ? 1 : 1;
 }
 
 function calculate() {
@@ -105,4 +105,5 @@ function openJournal() {
 </script>
 </body>
 </html>
+
 
